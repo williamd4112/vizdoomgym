@@ -67,7 +67,7 @@ class VizdoomEnv(gym.Env):
         self.action_space = spaces.Discrete(CONFIGS[level][1])
 
         # specify observation space(s)
-        list_spaces: List[gym.Space] = [
+        list_spaces = [
             spaces.Box(
                 0,
                 255,
@@ -144,8 +144,12 @@ class VizdoomEnv(gym.Env):
                 observation.append(self.state.game_variables[0])
         else:
             # there is no state in the terminal step, so a "zero observation is returned instead"
-            for space in self.observation_space:
-                observation.append(np.zeros(space.shape, dtype=space.dtype))
+            from collections.abc import Iterable
+            if isinstance(self.observation_space, Iterable): 
+                for space in self.observation_space:
+                    observation.append(np.zeros(space.shape, dtype=space.dtype))
+            else:
+                observation.append(np.zeros(self.observation_space.shape, dtype=self.observation_space.dtype))
 
         # if there is only one observation, return obs as array to sustain compatibility
         if len(observation) == 1:
@@ -158,10 +162,12 @@ class VizdoomEnv(gym.Env):
         try:
             img = self.game.get_state().screen_buffer
             img = np.transpose(img, [1, 2, 0])
-
-            if self.viewer is None:
-                self.viewer = rendering.SimpleImageViewer()
-            self.viewer.imshow(img)
+            if mode == 'human':
+                if self.viewer is None:
+                    self.viewer = rendering.SimpleImageViewer()
+                self.viewer.imshow(img)
+            elif mode == 'rgb_array':
+                return img
         except AttributeError:
             pass
         
